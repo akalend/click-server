@@ -395,6 +395,8 @@ setSignal() {
     signal(SIGTERM, signal_handler);
     signal(SIGINT,  signal_handler);
     signal(SIGQUIT, signal_handler);
+	signal(SIGPIPE, SIG_IGN);
+
 }
 
 void 
