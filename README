@@ -1,0 +1,87 @@
+Click server is light HTTP server for accounting clicks. Your could be like to use in banner system.
+
+The click-server process incoming HTTP request, get data from InStorage and make redirect to data string.  
+
+The request uri must be format http://some.host/some/url/prefix?key.
+
+The inStorage is key/value storage an have data: key / redirect url. 
+The click-server find redirect url by key and send HTTP header Location.
+
+So click server save request info to log file and OutStorage.
+The click-server storages is extendable. The inStorage is using memcacheDB, but You can to use any storage or Database. The output storage is MondoDb, but You can to change to any storage engine.
+
+The click server have friendly config click.conf. The default config placed is /usr/local/etc/.
+
+The click-server have one parametr: "stop" or "/path/to/config/file.conf"
+The "stop" is the stopping server;
+
+You can to use click-server after nginx or Apache  (lighttpd) proxy. 
+
+the part of nginx config:
+location  /leads/ {
+    proxy_pass   http://127.0.0.1:8080/leads;
+}
+
+
+INSTALLATION
+
+You must to edit the Makefile and set var INCLUDES, MONGOINC, MONGOLIB:
+INCLUDES = -I/usr/local/include -I/opt/local/include    
+MONGOINC = -I/Users/akalend/dist/mongodb-o++  
+MONGOLIB = -L/opt/local/lib -lmongoclient -lboost_thread-mt -
+
+make
+make install
+
+
+TESTING
+
+ab -c 25 -n 1000 http://127.0.0.1:8080/xxx?12345
+
+Server Software:        clicker-server
+Server Hostname:        127.0.0.1
+Server Port:            8080
+
+Document Path:          /xxx?12345
+Document Length:        0 bytes
+
+Concurrency Level:      25
+Time taken for tests:   0.911 seconds
+Complete requests:      1000
+Requests per second:    1097.15 [#/sec] (mean)
+Time per request:       22.786 [ms] (mean)
+Time per request:       0.911 [ms] (mean, across all concurrent requests)
+Transfer rate:          67.50 [Kbytes/sec] received
+
+
+LICENSE
+
+The BSD public licence:
+
+Copyright (c) 2010, Alexandre Kalendarev
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+3. All advertising materials mentioning features or use of this software
+   must display the following acknowledgement:
+   This product includes software developed by the <organization>.
+4. Neither the name of the <organization> nor the
+   names of its contributors may be used to endorse or promote products
+   derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY Alexandre Kalendarev ''AS IS'' AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
