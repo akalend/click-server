@@ -66,6 +66,17 @@ int main( int argc, const char** argv ){
 		free_ctx(&Ctx);		
 		return 1;
 	}
+	
+	if (Ctx.daemon) {
+		res=demonize(&Ctx);
+		if (res<1) {
+			free_ctx(&Ctx);	
+			if (res==-1) {
+				return 1;
+			}
+			return 0;
+		}
+	}
 
 	Ctx.buf = (char*)malloc(BUFF_SIZE);	
 	if (!Ctx.buf) {
@@ -73,7 +84,7 @@ int main( int argc, const char** argv ){
 		free_ctx(&Ctx);		
 		return 1;
 	}
-	
+
 	IStorage * inStorage  = reinterpret_cast<IStorage *>(new inputMcStorage);
 	if (!inStorage->init(&Ctx)) {
 		perror( "can't initialize the in Storage\n");
@@ -84,24 +95,13 @@ int main( int argc, const char** argv ){
 
 	IStorage * outStorage = reinterpret_cast<IStorage *>(new outputMongoStorage);
 	if (!outStorage->init(&Ctx)) {
-		printf( "can't initialize the out Storage\n");
+		perror( "can't initialize the out Storage\n");
 		delete outStorage;
 		delete inStorage;
 		free_ctx(&Ctx);	
 		return 1;
 	}
-	
-	
-	if (Ctx.daemon) {
-		res=demonize(&Ctx);
-		if (res==-1) {
-		delete outStorage;
-		delete inStorage;
-		free_ctx(&Ctx);	
-		return 1;
-		}
-	}
-	
+		
 	log_open(&Ctx);
 	
 	res=pid_create(&Ctx);

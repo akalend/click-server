@@ -263,6 +263,9 @@ int pid_create(ctx * Ctx) {
 		return 1;
 	}
 	
+	// проверить блокировку
+	flock(Ctx->pidfd, LOCK_EX | LOCK_NB);
+	
 	char buf[16]; 
 	bzero(buf,16);
 	sprintf(buf,"%ld",(long)getpid());	
@@ -277,6 +280,7 @@ int pid_create(ctx * Ctx) {
 }
 
 int pid_delete(ctx * Ctx) {
+	flock(Ctx->pidfd, LOCK_UN);
 	if ( close(Ctx->pidfd) < 0){
 		tolog(Ctx, LOG_ERROR, "can't close pid file %s", strerror(errno));
 //		perror("can't close pid file");
@@ -304,20 +308,7 @@ int
 demonize(ctx * Ctx){
 
 	int  fd;
-
-	for (int i = 0; i < 1024; i++)
-        close(i);
-/*	int i;
-	struct rlimit       rl;
 	
-	if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
-        perror("can't get file limit");
-	if (rl.rlim_max == RLIM_INFINITY)
-        rl.rlim_max = 1024;
-    for (i = 0; i < rl.rlim_max; i++)
-        close(i);
-*/
-
     switch (fork()) {
     case -1:
         perror("demonize fork failed");
@@ -327,49 +318,46 @@ demonize(ctx * Ctx){
         break;
 
     default:
-		free_ctx(Ctx);
-        exit(0);
+		//free_ctx(Ctx);
+        return 0;
     }
 
     int pid = getpid();
 
     if (setsid() == -1) {
-//		tolog(Ctx, LOG_ERROR, "setsid() failed");
 		perror("setsid() failed");        
         return -1;
     }
 
     umask(0);
 
+	for (int i = 0; i < 1024; i++)
+        close(i);
+
     fd = open("/dev/null", O_RDWR);
     if (fd == -1) {
-//		tolog("open(\"/dev/null\") failed", LOG_ERROR, Ctx);
 		perror("open(\"/dev/null\") failed");        
         return -1;
     }
 
     if (dup2(fd, STDIN_FILENO) == -1) {
-//		tolog("dup2(STDIN) failed", LOG_ERROR, Ctx);
 		perror("dup2(STDIN) failed");        
         return -1;
     }
 
     if (dup2(fd, STDOUT_FILENO) == -1) {
-//		tolog("dup2(STDOUT) failed", LOG_ERROR, Ctx);
 		perror("dup2(STDOUT) failed");        		
         return -1;
     }
 
     if (dup2(fd, STDERR_FILENO) == -1) {
-		tolog(Ctx, LOG_ERROR, "dup2(STDERR) failed", "");
-//        logs << "dup2(STDERR) failed";
+		perror("dup2(STDERR) failed");
         return -1;
     }
 
 
     if (fd > STDERR_FILENO) {
         if (close(fd) == -1) {
-//			tolog("close(fd) failed", LOG_ERROR, Ctx);
 			perror("close(fd) failed");        		
             return -1;
         }
