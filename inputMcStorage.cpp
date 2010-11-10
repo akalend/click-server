@@ -20,7 +20,6 @@
 #include "clicker.h"
 #include "IStorage.hpp"
 
-extern ctx Ctx;
 
 class inputMcStorage : IStorage
 {

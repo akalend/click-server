@@ -20,38 +20,9 @@
 #define __CLICKER_TOOLS__
 #include "clicker.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/errno.h>
-#include <sys/file.h>
-#include <cstdarg>
-#include <evhttp.h>
-#include <event.h>
 #include "ini_parse.c"
 #include "http_handler.cpp"
 
-extern struct evhttp *httpd;
-
-void
-http_handler(struct evhttp_request *req, void *arg);
-
-extern ctx Ctx;
-
-void 
-log_close(ctx * Ctx) {
-	close(Ctx->log_fd);
-	close(Ctx->err_fd);
-//	if (res <1 ) {
-//		perror("can't close log file");
-//	} 
-}
-	
 void 
 tolog( ctx * Ctx,  int type, const char * fmt, ...) {
 	short err=0;
@@ -157,11 +128,8 @@ toAccessLog( ctx * Ctx, const char * fmt, ...) {
 
 	short err=0;
 	if (strlen(fmt)>580) {
-// 		printf( "the log message is very long");
 		err = 1;
 	}
-		
-//	printf( "log_level=%d type=%d\n", Ctx->log_level ,type );
 	const time_t log_time=time(0);
 	struct tm ts;
 	localtime_r(&log_time,&ts);
@@ -228,204 +196,7 @@ toAccessLog( ctx * Ctx, const char * fmt, ...) {
 		close(Ctx->log_fd);
 		exit(1);
 	} 
-
-	
-
 }
 
-int pid_read(ctx * Ctx) {
-	FILE * fd = fopen(Ctx->pidfile, "r" );
-	if (!fd) {
-		perror("pid file not found");
-		return -1;
-	}
-
-	char buf[16];
-	bzero(buf,16);
-	
-	int res = fread(buf, 16,1, fd);
-	if (res < 0){
-		perror("can't read pid file");
-		fclose(fd);
-		return -1;	
-	}
-	
-	fclose(fd);
-	return atoi(buf);
-	
-}
-
-int pid_create(ctx * Ctx) {
-	Ctx->pidfd = open(Ctx->pidfile, O_CREAT | O_WRONLY, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH );
-	if (!Ctx->pidfd) {
-		tolog(Ctx, LOG_ERROR,  "can't open pid file %s", strerror(errno));
-//		perror("can't create pid file");
-		return 1;
-	}
-	
-	// проверить блокировку
-	flock(Ctx->pidfd, LOCK_EX | LOCK_NB);
-	
-	char buf[16]; 
-	bzero(buf,16);
-	sprintf(buf,"%ld",(long)getpid());	
-	if (write( Ctx->pidfd,buf, strlen(buf)+1) < 1) {
-		close(Ctx->pidfd);
-		tolog(Ctx, LOG_ERROR, "can't write to pid file %s" , strerror(errno));
-//		perror("can't write to pid file");
-		return 1;
-	} 
-	
-	return 0;
-}
-
-int pid_delete(ctx * Ctx) {
-	flock(Ctx->pidfd, LOCK_UN);
-	if ( close(Ctx->pidfd) < 0){
-		tolog(Ctx, LOG_ERROR, "can't close pid file %s", strerror(errno));
-//		perror("can't close pid file");
-	}
-	
-	size_t res = remove(Ctx->pidfile);
-	if (res != 0) {
-		tolog(Ctx, LOG_ERROR, "can't remove pid file %d" , strerror(errno));
-	}
-}
-
-int pid_exist(ctx * Ctx) {
-	struct stat st;
-	if (!stat(Ctx->pidfile,&st)) {
-		return 1;		
-	}
-	
-	if (errno==ENOENT)
-		return 0;
-		
-	return 1;				
-}
-
-int 
-demonize(ctx * Ctx){
-
-	int  fd;
-	
-    switch (fork()) {
-    case -1:
-        perror("demonize fork failed");
-        return -1;
-
-    case 0:
-        break;
-
-    default:
-		//free_ctx(Ctx);
-        return 0;
-    }
-
-    int pid = getpid();
-
-    if (setsid() == -1) {
-		perror("setsid() failed");        
-        return -1;
-    }
-
-    umask(0);
-
-	for (int i = 0; i < 1024; i++)
-        close(i);
-
-    fd = open("/dev/null", O_RDWR);
-    if (fd == -1) {
-		perror("open(\"/dev/null\") failed");        
-        return -1;
-    }
-
-    if (dup2(fd, STDIN_FILENO) == -1) {
-		perror("dup2(STDIN) failed");        
-        return -1;
-    }
-
-    if (dup2(fd, STDOUT_FILENO) == -1) {
-		perror("dup2(STDOUT) failed");        		
-        return -1;
-    }
-
-    if (dup2(fd, STDERR_FILENO) == -1) {
-		perror("dup2(STDERR) failed");
-        return -1;
-    }
-
-
-    if (fd > STDERR_FILENO) {
-        if (close(fd) == -1) {
-			perror("close(fd) failed");        		
-            return -1;
-        }
-    }
-
-    return pid;
-}
-
-void
-signal_handler(int sig) {
-	switch(sig) {
-		
-		case SIGHUP:
-			ini_parse(&Ctx);
-			tolog(&Ctx, LOG_ERROR, "server restarted ");
-			evhttp_free(httpd);
-			httpd = evhttp_start(Ctx.bind, Ctx.port);
-			evhttp_set_gencb(httpd, http_handler, NULL);
-			event_dispatch();
-
-			break;
-		case SIGTERM:
-		case SIGINT:
-			event_loopbreak();
-			break;
-        default:
-            //syslog(LOG_WARNING, "Unhandled signal (%d) %s", strsignal(sig));
-            break;
-    }
-}
-
-void
-setSignal() {
-    signal(SIGHUP,  signal_handler);
-    signal(SIGTERM, signal_handler);
-    signal(SIGINT,  signal_handler);
-    signal(SIGQUIT, signal_handler);
-	signal(SIGPIPE, SIG_IGN);
-
-}
-
-void 
-log_open(ctx * Ctx) {
-	Ctx->log_fd = open(Ctx->logfile,O_WRONLY|O_CREAT|O_APPEND );
-	if (Ctx->log_fd <1) {
-		perror("can't open log file");
-		exit(1);
-	}   	
-
-	fchmod(Ctx->log_fd, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-	if (Ctx->log_fd <1) {
-		perror("can't assign permission");
-		exit(1);
-	}   	
-	
-	Ctx->err_fd = open(Ctx->errfile,O_WRONLY|O_CREAT|O_APPEND );
-	if (Ctx->err_fd <1) {
-		perror("can't open log file");
-		exit(1);
-	}   	
-
-	fchmod(Ctx->err_fd, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-	if (Ctx->err_fd <1) {
-		perror("can't assign permission");
-		exit(1);
-	}   	
-	
-	//printf("fd=%d", Ctx->log_fd);
-}
 
 #endif

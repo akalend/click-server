@@ -14,7 +14,7 @@ install: click-server
 	sudo cp clicker.conf /usr/local/etc/
 
 debug:
-	g++ -ggdb -o click-server main.cpp -levent  -L/usr/local/lib -I/usr/local/include 
+	g++ -ggdb -o click-server main.cpp -levent  $(INCLUDES) $(MONGOINC)  $(LIBS) $(MONGOLIB)
 
 re2c:
 	re2c -o conf.c conf.re.c 

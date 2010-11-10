@@ -12,13 +12,6 @@
 
 #include "clicker.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-extern ctx Ctx;
-
 int ini_parse( ctx * Ctx) {
 	
 	Scanner in;
@@ -48,13 +41,13 @@ int ini_parse( ctx * Ctx) {
 		switch ( in.parm ) {
 			
 			case 1: {
-			if (t==101)
+			if (t==PARSE_BOOL_ON)
 				Ctx->daemon=1;
 				break;
 			} 	
 			
 			case 2: {
-				if (t==303) {
+				if (t==PARSE_PATH) {
 				 Ctx->logfile = (char*)malloc(len+1);
 				 if (Ctx->logfile ==NULL) {
 					perror("malloc logfile");
@@ -71,14 +64,14 @@ int ini_parse( ctx * Ctx) {
 			} 	
 			
 			case 3: {				
-				if (t==200) {
+				if (t==PARSE_INT) {
 				Ctx->port = atoi((const char *)in.ptok);
 				}
 				break;
 			} 	
 			
 			case 4: {
-				if (t==200) {
+				if (t==PARSE_INT) {
 				Ctx->inDb.port = atoi((const char *)in.ptok);
 				}
 				break;
@@ -94,7 +87,7 @@ int ini_parse( ctx * Ctx) {
 			}
 			
 			case 6: {			
-				if (t==100) {
+				if (t==PARSE_IP) {
 				 Ctx->bind = (char*)malloc(len+1);
 				 if (Ctx->bind == NULL) {
 					perror("WARNING: malloc bind");
@@ -111,7 +104,7 @@ int ini_parse( ctx * Ctx) {
 			}
 			
 			case 7: {
-				if (t==303) {
+				if (t==PARSE_PATH) {
 				 Ctx->pidfile = (char*)malloc(len+1);
 				 if (Ctx->pidfile ==NULL) {
 					perror("malloc pidfile");
@@ -128,7 +121,7 @@ int ini_parse( ctx * Ctx) {
 			} 	
 			
 			case 8: {			
-				if (t==100) {
+				if (t==PARSE_IP) {
 					 Ctx->inDb.host = (char*)malloc(len+1);
 					 if (Ctx->inDb.host == NULL) {
 						perror("WARNING: malloc DB.in host");
@@ -144,7 +137,7 @@ int ini_parse( ctx * Ctx) {
 				break;
 			}
 			case 9: {
-				if (t==303) {
+				if (t==PARSE_PATH) {
 				 Ctx->inDb.dbname = (char*)malloc(len+1);
 				 if (Ctx->inDb.dbname == NULL) {
 					perror("malloc DB.in");
@@ -161,15 +154,14 @@ int ini_parse( ctx * Ctx) {
 			} 	
 
 			case 10: {
-				if (t==200) {
+				if (t==PARSE_INT) {
 				Ctx->outDb.port = atoi((const char *)in.ptok);
 				}
 				break;
 			} 	
 
-
 			case 11: {			
-				if (t==100) {
+				if (t==PARSE_IP) {
 					 Ctx->outDb.host = (char*)malloc(len+1);
 					 if (Ctx->outDb.host == NULL) {
 						perror("WARNING: malloc DB.out host");
@@ -186,7 +178,7 @@ int ini_parse( ctx * Ctx) {
 			}
 			
 			case 12: {
-				if (t==303) {
+				if (t==PARSE_PATH) {
 				 Ctx->outDb.dbname = (char*)malloc(len+1);
 				 if (Ctx->outDb.dbname == NULL) {
 					perror("malloc DB.in");
@@ -203,7 +195,7 @@ int ini_parse( ctx * Ctx) {
 			} 	
 			
 			case 13: {
-				if (t==303) {
+				if (t==PARSE_PATH) {
 				 Ctx->errfile = (char*)malloc(len+1);
 				 if (Ctx->errfile == NULL) {
 					perror("malloc errorlog");
@@ -220,7 +212,7 @@ int ini_parse( ctx * Ctx) {
 			} 	
 
 			case 14: {
-				if (t==303) {
+				if (t==PARSE_PATH) {
 				 Ctx->prefix = (char*)malloc(len+1);
 				 if (Ctx->prefix == NULL) {
 					perror("malloc errorlog");
@@ -237,7 +229,7 @@ int ini_parse( ctx * Ctx) {
 			} 	
 
 			case 15: {
-				if (t==303) {
+				if (t==PARSE_PATH) {
 				 Ctx->uri404 = (char*)malloc(len+1);
 				 if (Ctx->uri404 == NULL) {
 					perror("malloc uri404");
@@ -280,16 +272,8 @@ int ini_parse( ctx * Ctx) {
 		return 1;
 	}
 
-	if (!Ctx->inDb.port) {
-		Ctx->inDb.port = 0;
-	}
-
 	if (!Ctx->inDb.host) {
 		Ctx->inDb.host=strdup(CLICKER_LHOST);
-	}
-
-	if (!Ctx->outDb.port) {
-		Ctx->outDb.port = 0;
 	}
 
 	if (!Ctx->outDb.host) {
@@ -299,48 +283,5 @@ int ini_parse( ctx * Ctx) {
 	//printf("daemon %d\n log level=%d '%s'\nport=%d %s\namqp '%s'\n", Ctx->daemon,Ctx->log_level, Ctx->logfile,Ctx->port,Ctx->bind,Ctx->amqp_connect);
 	
 	return 0;
-}
-
-void free_ctx(ctx * Ctx) {
-	if (Ctx->logfile)
-		free((void*)Ctx->logfile);
-		
-	if (Ctx->pidfile) {
-		free((void*)Ctx->pidfile);
-	}
-
-	if (Ctx->bind) {
-		free((void*)Ctx->bind);
-	}
-
-	if (Ctx->inDb.host) {
-		free((void*)Ctx->inDb.host);
-	}
-
-	if (Ctx->inDb.dbname) {
-		free((void*)Ctx->inDb.dbname);
-	}
-
-	if (Ctx->outDb.host) {
-		free((void*)Ctx->outDb.host);
-	}
-
-	if (Ctx->outDb.dbname) {
-		free((void*)Ctx->outDb.dbname);
-	}
-	
-	if (Ctx->buf) {
-		free((void*)Ctx->buf);
-	}
-	if (Ctx->errfile) {
-		free((void*)Ctx->errfile);
-	}
-	if (Ctx->prefix) {
-		free((void*)Ctx->prefix);
-	}
-	if (Ctx->uri404) {
-		free((void*)Ctx->uri404);
-	}
-	
 }
 #endif

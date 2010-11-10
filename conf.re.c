@@ -16,13 +16,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/uio.h>
+#include "clicker.h"
 
 #define	EOI	0
 
