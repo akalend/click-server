@@ -38,7 +38,7 @@ class outputMongoStorage : IStorage
 	}
 	
 	int init(ctx * Ctx)	 {
-
+		
 		Ctx->outDb.theClass = this;
 		_Ctx = Ctx;
 		
@@ -48,11 +48,11 @@ class outputMongoStorage : IStorage
 		bzero(buf,32);
 
 		if (Ctx->outDb.port) {
-			sprintf(buf, "%s%d", Ctx->outDb.host,Ctx->outDb.port);
+			sprintf(buf, "%s:%d", Ctx->outDb.host,Ctx->outDb.port);
 		} else {
 			sprintf(buf, "%s", Ctx->outDb.host);
 		}
-				
+
 		string connectionStr = buf;
 				
 		if (!conn->connect(connectionStr, errmsg)) {
